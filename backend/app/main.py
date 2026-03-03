@@ -112,6 +112,10 @@ def create_app() -> FastAPI:
     from app.websocket.ws_router import router as ws_router
     application.include_router(ws_router, prefix="/api/v1")
 
+    # Phase 8: Metrics
+    from app.api.v1.metrics_router import router as metrics_router
+    application.include_router(metrics_router, prefix="/api/v1")
+
     return application
 
 
