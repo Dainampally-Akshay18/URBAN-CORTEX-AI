@@ -103,10 +103,13 @@ class RoutingService:
         route_data = {
             "route_id": route_id,
             "city": city,
+            "truck_id": None,
             "ordered_bin_ids": ordered_bin_ids,
             "total_distance": total_distance,
             "estimated_time_minutes": estimated_time_minutes,
             "status": "generated",
+            "started_at": None,
+            "completed_at": None,
             "created_at": now,
         }
         
@@ -276,16 +279,27 @@ class RoutingService:
     def format_route_response(self, route_data: Dict) -> Dict:
         """Format route data for response."""
         created_at = route_data.get("created_at")
+        started_at = route_data.get("started_at")
+        completed_at = route_data.get("completed_at")
         
         if isinstance(created_at, datetime):
             created_at = created_at.isoformat()
         
+        if isinstance(started_at, datetime):
+            started_at = started_at.isoformat()
+        
+        if isinstance(completed_at, datetime):
+            completed_at = completed_at.isoformat()
+        
         return {
             "route_id": route_data.get("route_id") or route_data.get("id"),
             "city": route_data.get("city"),
+            "truck_id": route_data.get("truck_id"),
             "ordered_bin_ids": route_data.get("ordered_bin_ids", []),
             "total_distance": route_data.get("total_distance"),
             "estimated_time_minutes": route_data.get("estimated_time_minutes"),
             "status": route_data.get("status"),
+            "started_at": started_at,
+            "completed_at": completed_at,
             "created_at": created_at,
         }

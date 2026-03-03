@@ -103,6 +103,14 @@ def create_app() -> FastAPI:
     # Phase 6: Routes
     from app.api.v1.routes_router import router as routes_router
     application.include_router(routes_router, prefix="/api/v1")
+    
+    # Phase 7: Trucks + Simulation
+    from app.api.v1.trucks_router import router as trucks_router
+    application.include_router(trucks_router, prefix="/api/v1")
+    
+    # Phase 7: WebSocket
+    from app.websocket.ws_router import router as ws_router
+    application.include_router(ws_router, prefix="/api/v1")
 
     return application
 
