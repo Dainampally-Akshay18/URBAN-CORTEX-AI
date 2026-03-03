@@ -26,7 +26,6 @@ from app.core.config import get_settings, validate_settings_on_startup
 from app.core.firebase import check_firestore_health, get_firestore_client
 from app.core.logging_config import setup_logging
 from app.utils.response_formatter import error_response, success_response
-from app.api.v1.test_router import router as test_router
 
 logger = logging.getLogger(__name__)
 
@@ -91,8 +90,9 @@ def create_app() -> FastAPI:
     _register_health_endpoints(application)
 
     # ── Register API routers ─────────────────────────────────
-    # Phase 3: Temporary test router (will be removed)
-    application.include_router(test_router)
+    # Phase 4: Auth module
+    from app.api.v1.auth_router import router as auth_router
+    application.include_router(auth_router, prefix="/api/v1")
 
     return application
 

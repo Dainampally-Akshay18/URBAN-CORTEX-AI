@@ -83,6 +83,10 @@ class Settings(BaseSettings):
         default="http://localhost:5173,http://localhost:3000",
         description="Comma-separated allowed CORS origins"
     )
+    jwt_secret_key:str=Field(
+        ...,
+        description="jwt token"
+    )
 
     # ─── Firebase Credentials (ENV-BASED, MANDATORY) ───────────
     # These are sourced from the Firebase service account JSON
@@ -130,6 +134,21 @@ class Settings(BaseSettings):
     iot_system_api_key: str = Field(
         ...,
         description="API key for IoT system-level access (POST /bins/update-from-iot)"
+    )
+
+    # ─── JWT Authentication ────────────────────────────────────
+    jwt_secret_key: str = Field(
+        ...,
+        description="Secret key for JWT token signing"
+    )
+    jwt_algorithm: str = Field(
+        default="HS256",
+        description="JWT signing algorithm"
+    )
+    jwt_access_token_expire_minutes: int = Field(
+        default=1440,  # 24 hours
+        ge=1,
+        description="JWT access token expiry in minutes"
     )
 
     # ─── Rate Limiting ─────────────────────────────────────────
