@@ -99,6 +99,10 @@ def create_app() -> FastAPI:
     from app.api.v1.system_router import router as system_router
     application.include_router(bins_router, prefix="/api/v1")
     application.include_router(system_router, prefix="/api/v1")
+    
+    # Phase 6: Routes
+    from app.api.v1.routes_router import router as routes_router
+    application.include_router(routes_router, prefix="/api/v1")
 
     return application
 
