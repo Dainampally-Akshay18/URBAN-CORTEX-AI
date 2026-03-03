@@ -48,3 +48,5 @@ logs/
 .coverage
 htmlcov/
 .pytest_cache/
+
+.kiro

@@ -93,6 +93,12 @@ def create_app() -> FastAPI:
     # Phase 4: Auth module
     from app.api.v1.auth_router import router as auth_router
     application.include_router(auth_router, prefix="/api/v1")
+    
+    # Phase 5: Bins + IoT sync
+    from app.api.v1.bins_router import router as bins_router
+    from app.api.v1.system_router import router as system_router
+    application.include_router(bins_router, prefix="/api/v1")
+    application.include_router(system_router, prefix="/api/v1")
 
     return application
 
