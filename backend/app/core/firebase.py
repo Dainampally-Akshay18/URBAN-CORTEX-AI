@@ -27,6 +27,7 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from google.cloud.firestore_v1.client import Client as FirestoreClient
 
+from app.core.collections import Collections
 from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -89,7 +90,7 @@ async def check_firestore_health() -> dict:
         # Attempt to list 1 document from any collection (lightweight)
         # Using the _system_health_check collection which won't interfere
         # with real data
-        db.collection("_system_health_check").limit(1).get()
+        db.collection(Collections.SYSTEM_HEALTH_CHECK).limit(1).get()
 
         return {
             "firestore": "connected",

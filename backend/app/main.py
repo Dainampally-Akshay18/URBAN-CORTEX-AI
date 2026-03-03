@@ -2,7 +2,7 @@
 Urban Cortex AI – FastAPI Application Entry Point
 ===================================================
 
-Phase 2: Full FastAPI bootstrapping with:
+Phase 2+3: Full FastAPI bootstrapping with:
   - App factory pattern
   - Lifespan (startup/shutdown) hooks
   - CORS middleware
@@ -10,8 +10,7 @@ Phase 2: Full FastAPI bootstrapping with:
   - Logging configuration
   - /health endpoint (API status)
   - /firestore-health endpoint (Firestore connectivity)
-
-No business logic. Routers will be added in later phases.
+  - Phase 3: Test router for data layer validation
 """
 
 from __future__ import annotations
@@ -27,6 +26,7 @@ from app.core.config import get_settings, validate_settings_on_startup
 from app.core.firebase import check_firestore_health, get_firestore_client
 from app.core.logging_config import setup_logging
 from app.utils.response_formatter import error_response, success_response
+from app.api.v1.test_router import router as test_router
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +89,10 @@ def create_app() -> FastAPI:
 
     # ── Register health endpoints ────────────────────────────
     _register_health_endpoints(application)
+
+    # ── Register API routers ─────────────────────────────────
+    # Phase 3: Temporary test router (will be removed)
+    application.include_router(test_router)
 
     return application
 
