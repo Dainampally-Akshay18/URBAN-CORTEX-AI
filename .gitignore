@@ -1,0 +1,50 @@
+# ============================================================
+# Urban Cortex AI – .gitignore
+# ============================================================
+
+# ─── Environment Files ─────────────────────────────────────
+.env
+*.env.local
+
+# ─── Python ────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ─── Virtual Environment ──────────────────────────────────
+venv/
+.venv/
+env/
+
+# ─── IDE ───────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ─── OS ───────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ─── Docker ───────────────────────────────────────────────
+docker-compose.override.yml
+
+# ─── Node (frontend) ──────────────────────────────────────
+node_modules/
+frontend/dist/
+frontend/.env
+
+# ─── Logs ─────────────────────────────────────────────────
+*.log
+logs/
+
+# ─── Coverage / Testing ──────────────────────────────────
+.coverage
+htmlcov/
+.pytest_cache/

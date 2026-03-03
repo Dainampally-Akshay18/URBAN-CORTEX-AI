@@ -1,0 +1,39 @@
+# ============================================================
+# Urban Cortex AI – Backend Dependencies
+# ============================================================
+
+# ─── Core Framework ──────────────────────────────────────────
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+pydantic-settings==2.7.1
+
+# ─── Firebase ─────────────────────────────────────────────────
+firebase-admin==6.6.0
+
+# ─── HTTP Client (IoT Simulator integration) ─────────────────
+httpx==0.28.1
+
+# ─── WebSocket (included in uvicorn[standard]) ───────────────
+websockets==14.2
+
+# ─── ML / Intelligence Modules ───────────────────────────────
+scikit-learn==1.6.1
+numpy==2.2.1
+
+# ─── CSV Export ───────────────────────────────────────────────
+# (Python stdlib csv module is used – no extra dependency)
+
+# ─── Rate Limiting ───────────────────────────────────────────
+slowapi==0.1.9
+
+# ─── Logging ──────────────────────────────────────────────────
+python-json-logger==3.2.1
+
+# ─── Environment / Config ────────────────────────────────────
+python-dotenv==1.0.1
+
+# ─── Testing ──────────────────────────────────────────────────
+pytest==8.3.4
+pytest-asyncio==0.25.0
+httpx==0.28.1

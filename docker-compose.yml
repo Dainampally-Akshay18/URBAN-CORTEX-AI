@@ -1,0 +1,39 @@
+# ============================================================
+# Urban Cortex AI – Docker Compose
+# ============================================================
+# Orchestrates the backend service (and future frontend).
+# Firebase is a cloud service – no local container needed.
+# Firebase credentials are passed via environment variables.
+# ============================================================
+
+version: "3.9"
+
+services:
+  # ── Backend (FastAPI) ──────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: urban-cortex-backend
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    env_file:
+      - .env
+    environment:
+      - APP_ENV=${APP_ENV:-development}
+      - DEBUG=${DEBUG:-true}
+    volumes:
+      - ./backend:/app                # Hot-reload in development
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/system/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - urban-cortex-network
+
+networks:
+  urban-cortex-network:
+    driver: bridge
