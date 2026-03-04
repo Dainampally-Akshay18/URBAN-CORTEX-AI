@@ -3,6 +3,7 @@ Urban Cortex AI – Truck Service
 =================================
 
 Truck management and CRUD operations.
+Includes automatic driver account creation on truck creation.
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from typing import Dict, List, Optional
 from fastapi import HTTPException, status
 
 from app.core.collections import Collections
+from app.core.security import hash_password
 from app.repositories.base_repository import BaseRepository, FirestoreError
 
 logger = logging.getLogger(__name__)
@@ -26,34 +28,139 @@ class TruckService:
     def __init__(self):
         self.truck_repo = BaseRepository(Collections.TRUCKS)
         self.route_repo = BaseRepository(Collections.ROUTES)
+        self.user_repo = BaseRepository(Collections.USERS)
     
-    # ── Create Truck ────────────────────────────────────────────
+    # ── Create Truck + Driver ──────────────────────────────────
+    
+    async def create_truck_with_driver(
+        self,
+        truck_id: str,
+        city: str,
+        max_capacity: float,
+        name: str,
+        email: str,
+        password: str,
+    ) -> Dict:
+        """
+        Create a new truck AND its driver account in one operation.
+        
+        Steps:
+            1. Validate truck_id is unique
+            2. Validate email is unique
+            3. Create driver in 'users' collection
+            4. Create truck in 'trucks' collection (linked to driver)
+        
+        Args:
+            truck_id: Unique truck identifier
+            city: City where truck operates
+            max_capacity: Maximum load capacity
+            name: Driver name
+            email: Driver email
+            password: Plain-text password (will be hashed)
+            
+        Returns:
+            Dict with truck_id and driver_id
+        """
+        # ── 1. Check if truck already exists ───────────────────
+        existing_truck = self.truck_repo.get_by_id(truck_id)
+        if existing_truck:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Truck {truck_id} already exists",
+            )
+        
+        # ── 2. Check if email already registered ──────────────
+        existing_users = self.user_repo.list(
+            filters=[("email", "==", email)], limit=1
+        )
+        if existing_users:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Email {email} is already registered",
+            )
+        
+        now = datetime.now(timezone.utc)
+        user_id = str(uuid.uuid4())
+        
+        # ── 3. Create driver in 'users' collection ────────────
+        hashed_pw = hash_password(password)
+        
+        user_data = {
+            "user_id": user_id,
+            "name": name,
+            "email": email,
+            "password": hashed_pw,
+            "role": "driver",
+            "assigned_truck_id": truck_id,
+            "city": city,
+            "is_active": True,
+            "created_at": now,
+        }
+        
+        try:
+            self.user_repo.create(user_id, user_data)
+            logger.info("Driver created: %s (%s) for truck %s", user_id, email, truck_id)
+        except FirestoreError as exc:
+            logger.error("Failed to create driver account: %s", str(exc))
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to create driver account",
+            )
+        
+        # ── 4. Create truck in 'trucks' collection ────────────
+        truck_data = {
+            "truck_id": truck_id,
+            "city": city,
+            "max_capacity": max_capacity,
+            "current_load": 0.0,
+            "status": "idle",
+            "assigned_route_id": None,
+            "driver_id": user_id,
+            "current_latitude": None,
+            "current_longitude": None,
+            "created_at": now,
+        }
+        
+        try:
+            self.truck_repo.create(truck_id, truck_data)
+            logger.info("Truck created: %s in %s with driver %s", truck_id, city, user_id)
+        except FirestoreError as exc:
+            # Rollback: remove the driver we just created
+            try:
+                self.user_repo.delete(user_id)
+                logger.info("Rolled back driver %s after truck creation failure", user_id)
+            except Exception:
+                logger.error("Rollback of driver %s failed!", user_id)
+            
+            logger.error("Failed to create truck: %s", str(exc))
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to create truck",
+            )
+        
+        return {
+            "truck_id": truck_id,
+            "driver_id": user_id,
+        }
+    
+    # ── Legacy Create Truck (kept for internal use) ────────────
     
     async def create_truck(
         self,
         truck_id: str,
         city: str,
         max_capacity: float,
-        driver_id: Optional[str] = None
+        driver_id: Optional[str] = None,
     ) -> Dict:
         """
-        Create a new truck.
-        
-        Args:
-            truck_id: Unique truck identifier
-            city: City where truck operates
-            max_capacity: Maximum load capacity
-            driver_id: Optional assigned driver ID
-            
-        Returns:
-            Created truck document
+        Create a new truck (without automatic driver creation).
+        Kept for backward compatibility with internal callers.
         """
-        # Check if truck already exists
         existing = self.truck_repo.get_by_id(truck_id)
         if existing:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Truck {truck_id} already exists"
+                detail=f"Truck {truck_id} already exists",
             )
         
         now = datetime.now(timezone.utc)
@@ -79,7 +186,7 @@ class TruckService:
             logger.error("Failed to create truck: %s", str(exc))
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to create truck"
+                detail="Failed to create truck",
             )
     
     # ── Get All Trucks ──────────────────────────────────────────
@@ -95,7 +202,7 @@ class TruckService:
                 filters=filters if filters else None,
                 limit=limit,
                 order_by="created_at",
-                direction="DESCENDING"
+                direction="DESCENDING",
             )
             
             return trucks
@@ -103,7 +210,7 @@ class TruckService:
             logger.error("Failed to fetch trucks: %s", str(exc))
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to fetch trucks"
+                detail="Failed to fetch trucks",
             )
     
     # ── Get Truck by ID ─────────────────────────────────────────
@@ -120,7 +227,7 @@ class TruckService:
         if not truck:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Truck {truck_id} not found"
+                detail=f"Truck {truck_id} not found",
             )
         
         return truck
@@ -140,7 +247,6 @@ class TruckService:
         Raises:
             HTTPException: 404 if truck not found
         """
-        # Verify truck exists
         truck = await self.get_truck(truck_id)
         
         update_data = {}
@@ -150,7 +256,6 @@ class TruckService:
         
         if assigned_route_id is not None:
             update_data["assigned_route_id"] = assigned_route_id
-            # Update status based on route assignment
             if assigned_route_id:
                 update_data["status"] = "assigned"
             else:
@@ -170,7 +275,7 @@ class TruckService:
             logger.error("Failed to update truck: %s", str(exc))
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to update truck"
+                detail="Failed to update truck",
             )
     
     # ── Delete Truck ────────────────────────────────────────────
@@ -190,12 +295,12 @@ class TruckService:
             if "not found" in str(exc).lower():
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Truck {truck_id} not found"
+                    detail=f"Truck {truck_id} not found",
                 )
             logger.error("Failed to delete truck: %s", str(exc))
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to delete truck"
+                detail="Failed to delete truck",
             )
     
     # ── Assign Route to Truck ───────────────────────────────────
@@ -203,34 +308,23 @@ class TruckService:
     async def assign_route(self, truck_id: str, route_id: str) -> Dict:
         """
         Assign a route to a truck.
-        
-        Args:
-            truck_id: Truck identifier
-            route_id: Route identifier
-            
-        Returns:
-            Updated truck document
         """
-        # Verify truck exists
         truck = await self.get_truck(truck_id)
         
-        # Verify route exists
         route = self.route_repo.get_by_id(route_id)
         if not route:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Route {route_id} not found"
+                detail=f"Route {route_id} not found",
             )
         
-        # Update truck
         update_data = {
             "assigned_route_id": route_id,
-            "status": "assigned"
+            "status": "assigned",
         }
         
-        # Update route with truck_id
         route_update = {
-            "truck_id": truck_id
+            "truck_id": truck_id,
         }
         
         try:
@@ -242,7 +336,7 @@ class TruckService:
             logger.error("Failed to assign route: %s", str(exc))
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to assign route"
+                detail="Failed to assign route",
             )
     
     # ── Format Truck Response ───────────────────────────────────

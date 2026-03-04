@@ -31,41 +31,44 @@ truck_service = TruckService()
 simulation_service = TruckSimulationService()
 
 
-# ── Create Truck ────────────────────────────────────────────────
+# ── Create Truck + Driver ───────────────────────────────────────
 
 @router.post(
     "",
-    summary="Create new truck",
+    summary="Create new truck with driver",
     status_code=status.HTTP_201_CREATED,
 )
 async def create_truck(request: TruckCreateRequest):
     """
-    Create a new truck.
+    Create a new truck **and** its driver account in one step.
     
     PRD Module 4.3: POST /trucks
     Role: Admin (hackathon: open access)
+
+    The request body now includes driver info (name, email, password).
+    A driver user is automatically created in the 'users' collection.
     """
     try:
-        truck = await truck_service.create_truck(
+        result = await truck_service.create_truck_with_driver(
             truck_id=request.truck_id,
             city=request.city,
             max_capacity=request.max_capacity,
-            driver_id=request.driver_id
+            name=request.name,
+            email=request.email,
+            password=request.password,
         )
         
-        formatted = truck_service.format_truck_response(truck)
-        
         return success_response(
-            data=formatted,
-            message=f"Truck {request.truck_id} created successfully"
+            data=result,
+            message="Truck and driver created successfully"
         )
     
     except HTTPException:
         raise
     except Exception as exc:
-        logger.error("Failed to create truck: %s", str(exc))
+        logger.error("Failed to create truck and driver: %s", str(exc))
         return error_response(
-            message="Failed to create truck",
+            message="Failed to create truck and driver",
             errors=[str(exc)]
         )
 

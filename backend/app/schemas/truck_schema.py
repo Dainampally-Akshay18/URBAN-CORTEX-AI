@@ -9,17 +9,21 @@ from __future__ import annotations
 
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 
 
-# ── Truck Create Request ───────────────────────────────────────
+# ── Truck Create Request (with embedded driver info) ───────────
 
 class TruckCreateRequest(BaseModel):
-    """Request to create a new truck"""
+    """Request to create a new truck along with its driver account."""
     truck_id: str = Field(..., description="Unique truck identifier")
     city: str = Field(..., description="City where truck operates")
     max_capacity: float = Field(..., description="Maximum load capacity", gt=0)
-    driver_id: Optional[str] = Field(None, description="Assigned driver ID")
+
+    # Driver fields (required for auto-creation)
+    name: str = Field(..., min_length=1, max_length=100, description="Driver name")
+    email: EmailStr = Field(..., description="Driver email address")
+    password: str = Field(..., min_length=6, max_length=100, description="Driver password")
 
 
 # ── Truck Update Request ───────────────────────────────────────
@@ -45,6 +49,14 @@ class TruckResponse(BaseModel):
     current_latitude: Optional[float]
     current_longitude: Optional[float]
     created_at: str
+
+
+# ── Truck + Driver Create Response ─────────────────────────────
+
+class TruckDriverCreateResponse(BaseModel):
+    """Response when a truck and driver are created together."""
+    truck_id: str
+    driver_id: str
 
 
 # ── Start Trip Response ────────────────────────────────────────
