@@ -359,7 +359,24 @@ class BinService:
         
         if isinstance(predicted_overflow_time, datetime):
             predicted_overflow_time = predicted_overflow_time.isoformat()
-        
+
+        # ─── NEW: Calculate time_to_overflow_minutes on the fly ───
+        fill_level = bin_data.get("fill_level", 0)
+        fill_rate = bin_data.get("fill_rate", 0)
+        time_to_overflow = bin_data.get("time_to_overflow_minutes")
+
+        # If missing, calculate it now
+        if time_to_overflow is None:
+            if fill_rate and fill_rate > 0:
+                remaining_capacity = 100.0 - float(fill_level)
+                if remaining_capacity <= 0:
+                    time_to_overflow = 0.0
+                else:
+                    time_to_overflow = remaining_capacity / float(fill_rate)
+            else:
+                # If rate is 0 or None, it will never overflow (Infinity)
+                time_to_overflow = None 
+
         return {
             "bin_id": bin_data.get("bin_id") or bin_data.get("id"),
             "city": bin_data.get("city"),
@@ -370,7 +387,7 @@ class BinService:
             "status": bin_data.get("status"),
             "urgency_score": bin_data.get("urgency_score"),
             "predicted_overflow_time": predicted_overflow_time,
-            "time_to_overflow_minutes": bin_data.get("time_to_overflow_minutes"),
+            "time_to_overflow_minutes": time_to_overflow,  # <--- Use calculated value
             "created_at": created_at,
             "last_updated": last_updated,
         }

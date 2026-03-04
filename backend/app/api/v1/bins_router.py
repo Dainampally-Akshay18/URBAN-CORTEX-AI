@@ -11,6 +11,8 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter, Query, status
+from app.schemas.bin_schema import BinIoTEvent
+from fastapi import HTTPException
 
 from app.schemas.bin_schema import BinCreateRequest, BinUpdateRequest
 from app.services.bin_service import BinService
@@ -149,4 +151,53 @@ async def delete_bin(bin_id: str):
     return success_response(
         data={"bin_id": bin_id},
         message="Bin deleted successfully",
+    )
+
+@router.post(
+    "/update-from-iot",
+    status_code=status.HTTP_200_OK,
+    summary="Ingest data from IoT Simulator",
+)
+async def update_from_iot(event: BinIoTEvent):
+    """
+    Ingest data from IoT Simulator.
+    
+    - Accepts bin_id in the body.
+    - Creates the bin if it doesn't exist.
+    - Updates it if it does.
+    - Recalculates urgency_score, status, and predictions automatically.
+    """
+    try:
+        # Try to update existing bin first
+        bin_data = await bin_service.update_bin(
+            bin_id=event.bin_id,
+            city=event.city,
+            latitude=event.latitude,
+            longitude=event.longitude,
+            fill_level=event.fill_level,
+            fill_rate=event.fill_rate
+        )
+        message = "Bin updated from IoT event"
+
+    except HTTPException as e:
+        # If Bin not found (404), create it new
+        if e.status_code == 404:
+            bin_data = await bin_service.create_bin(
+                bin_id=event.bin_id,
+                city=event.city,
+                latitude=event.latitude,
+                longitude=event.longitude,
+                fill_level=event.fill_level,
+                fill_rate=event.fill_rate
+            )
+            message = "Bin created from IoT event"
+        else:
+            raise e
+
+    # Format the response
+    formatted = bin_service.format_bin_response(bin_data)
+    
+    return success_response(
+        data=formatted,
+        message=message,
     )

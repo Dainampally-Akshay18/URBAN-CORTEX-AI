@@ -50,3 +50,19 @@ class BinResponse(BaseModel):
     time_to_overflow_minutes: float
     created_at: str
     last_updated: str
+
+
+# Open backend/app/schemas/bin_schema.py and add this class:
+
+class BinIoTEvent(BaseModel):
+    """
+    Schema for IoT Simulator Events.
+    Matches the JSON format sent by the simulator.
+    """
+    bin_id: str
+    city: str
+    latitude: float
+    longitude: float
+    fill_level: float
+    fill_rate: Optional[float] = 0.0
+    last_updated: Optional[str] = None
