@@ -116,6 +116,14 @@ def create_app() -> FastAPI:
     from app.api.v1.metrics_router import router as metrics_router
     application.include_router(metrics_router, prefix="/api/v1")
 
+    # Phase 9: Complaints
+    from app.api.v1.complaints_router import router as complaints_router
+    application.include_router(complaints_router, prefix="/api/v1")
+
+    # Phase 10: Investigations
+    from app.api.v1.investigations_router import router as investigations_router
+    application.include_router(investigations_router, prefix="/api/v1")
+
     return application
 
 
