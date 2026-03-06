@@ -83,10 +83,6 @@ class Settings(BaseSettings):
         default="http://localhost:5173,http://localhost:3000",
         description="Comma-separated allowed CORS origins"
     )
-    jwt_secret_key:str=Field(
-        ...,
-        description="jwt token"
-    )
 
     # ─── Firebase Credentials (ENV-BASED, MANDATORY) ───────────
     # These are sourced from the Firebase service account JSON
@@ -134,6 +130,18 @@ class Settings(BaseSettings):
     iot_system_api_key: str = Field(
         ...,
         description="API key for IoT system-level access (POST /bins/update-from-iot)"
+    )
+
+    # ─── Groq AI ───────────────────────────────────────────────
+    groq_api_key: str = Field(
+        default="gsk_placeholder",
+        description="Groq API key for RAG assistant"
+    )
+
+    # ─── Sarvam AI ─────────────────────────────────────────────
+    sarvam_api_key: str = Field(
+        default="sarvam_placeholder",
+        description="Sarvam AI API key for RAG assistant"
     )
 
     # ─── JWT Authentication ────────────────────────────────────
@@ -288,7 +296,8 @@ def validate_settings_on_startup() -> Settings:
     print(f"   IoT Sync Every      : {settings.iot_sync_interval_seconds}s")
     print(f"   Log Level           : {settings.log_level.value}")
     print(f"   Log Format          : {settings.log_format.value}")
-    print(f"   IoT API Key         : {'*' * min(len(settings.iot_system_api_key), 20)}")
+    print(f"   Groq API Key        : {'[SET]' if settings.groq_api_key != 'gsk_placeholder' else '[MISSING] (using placeholder)'}")
+    print(f"   Sarvam API Key      : {'[SET]' if settings.sarvam_api_key != 'sarvam_placeholder' else '[MISSING] (using placeholder)'}")
     print("=" * 60)
 
     return settings

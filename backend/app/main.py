@@ -124,6 +124,10 @@ def create_app() -> FastAPI:
     from app.api.v1.investigations_router import router as investigations_router
     application.include_router(investigations_router, prefix="/api/v1")
 
+    # Phase 11: AI Operations Assistant
+    from app.api.v1.operations_Assistant_router import router as operations_assistant_router
+    application.include_router(operations_assistant_router, prefix="/api/v1/ai", tags=["AI Operations Assistant"])
+
     return application
 
 

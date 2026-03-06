@@ -12,7 +12,7 @@ import logging
 from typing import Dict, Optional
 
 from fastapi import APIRouter, Depends, Query, status
-
+from pydantic import Field
 from app.core.dependencies import get_current_user, require_role
 from app.schemas.complaint_schema import (
     ComplaintCreateRequest,
@@ -31,21 +31,26 @@ router = APIRouter(
 complaint_service = ComplaintService()
 
 
+class PublicComplaintCreateRequest(ComplaintCreateRequest):
+    """Extended request body for public complaint creation."""
+    name: str = Field(..., min_length=1, description="Citizen's name")
+    email: str = Field(..., min_length=3, description="Citizen's email")
+
+
 # ── POST /api/v1/complaints ───────────────────────────────────
 
 @router.post(
     "/",
     status_code=status.HTTP_201_CREATED,
-    summary="Create a complaint (Citizen)",
+    summary="Create a complaint (Public)",
 )
 async def create_complaint(
-    request: ComplaintCreateRequest,
-    user: Dict = Depends(require_role(["citizen"])),
+    request: PublicComplaintCreateRequest,
 ):
     """
-    Create a new complaint.
+    Create a new complaint (Public access).
 
-    - Role: **Citizen**
+    - Role: **Public/Citizen** (No auth required)
     - Generates complaint_id, sets status=pending, stores in Firestore.
     - Emits WebSocket event `complaint_created`.
     """
@@ -55,7 +60,7 @@ async def create_complaint(
         latitude=request.latitude,
         longitude=request.longitude,
         description=request.description,
-        created_by=user.get("user_id"),
+        created_by=f"{request.name} <{request.email}>",
     )
 
     formatted = complaint_service.format_complaint_response(complaint)
