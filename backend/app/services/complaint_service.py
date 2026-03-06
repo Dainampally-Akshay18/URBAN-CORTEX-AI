@@ -227,6 +227,43 @@ class ComplaintService:
                 detail="Failed to delete complaint",
             )
 
+    # ── Assign Investigation ──────────────────────────────────────
+
+    async def link_investigation(
+        self,
+        complaint_id: str,
+        assigned_admin: str,
+    ) -> Dict:
+        """
+        Update complaint fields when an investigation is created for it.
+        """
+        existing = self.complaint_repo.get_by_id(complaint_id)
+        if not existing:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Complaint {complaint_id} not found",
+            )
+
+        update_data = {
+            "assigned_admin": assigned_admin,
+            "status": "investigating",
+            "last_updated": datetime.now(timezone.utc)
+        }
+
+        try:
+            updated = self.complaint_repo.update(complaint_id, update_data)
+            logger.info(
+                "Complaint %s linked to investigation, admin %s",
+                complaint_id, assigned_admin
+            )
+            return updated
+        except FirestoreError as exc:
+            logger.error("Failed to link complaint investigation info: %s", str(exc))
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to link complaint investigation info",
+            )
+
     # ── Format Complaint Response ─────────────────────────────
 
     @staticmethod
@@ -234,12 +271,16 @@ class ComplaintService:
         """Format complaint data for API response (datetime → ISO string)."""
         created_at = complaint.get("created_at")
         resolved_at = complaint.get("resolved_at")
+        last_updated = complaint.get("last_updated")
 
         if isinstance(created_at, datetime):
             created_at = created_at.isoformat()
 
         if isinstance(resolved_at, datetime):
             resolved_at = resolved_at.isoformat()
+            
+        if isinstance(last_updated, datetime):
+            last_updated = last_updated.isoformat()
 
         return {
             "complaint_id": complaint.get("complaint_id") or complaint.get("id"),
@@ -253,4 +294,5 @@ class ComplaintService:
             "assigned_admin": complaint.get("assigned_admin"),
             "created_at": created_at,
             "resolved_at": resolved_at,
+            "last_updated": last_updated,
         }

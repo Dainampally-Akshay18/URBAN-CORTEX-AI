@@ -99,7 +99,31 @@ async def get_route(route_id: str):
     )
 
 
+# ── POST /api/v1/routes/assign-urgent-bin/{bin_id} ───────────
+
+@router.post(
+    "/assign-urgent-bin/{bin_id}",
+    status_code=status.HTTP_200_OK,
+    summary="Handle new urgent bin dynamically",
+)
+async def assign_urgent_bin(bin_id: str):
+    """
+    Handle a new urgent or overflow bin appearing.
+    
+    - Checks for existing trucks with remaining capacity.
+    - Adds bin to route if capacity exists.
+    - Otherwise triggers new route generation for idle trucks.
+    """
+    result = await routing_service.handle_new_urgent_bin(bin_id)
+    
+    return success_response(
+        data=result,
+        message=result.get("message", "Processed urgent bin"),
+    )
+
+
 # ── DELETE /api/v1/routes/{route_id} ──────────────────────────
+
 
 @router.delete(
     "/{route_id}",

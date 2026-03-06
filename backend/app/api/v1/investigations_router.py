@@ -20,6 +20,7 @@ from app.schemas.investigation_schema import (
     InvestigationStatusUpdateRequest,
 )
 from app.services.investigation_service import InvestigationService
+from app.services.complaint_service import ComplaintService
 from app.utils.response_formatter import success_response
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,7 @@ router = APIRouter(
 )
 
 investigation_service = InvestigationService()
+complaint_service = ComplaintService()
 
 
 # ── POST /api/v1/investigations ───────────────────────────────
@@ -48,6 +50,12 @@ async def create_investigation(request: InvestigationCreateRequest):
     - Stores document in Firestore `investigations` collection.
     """
     investigation = await investigation_service.create_investigation(
+        complaint_id=request.complaint_id,
+        assigned_admin=request.assigned_admin,
+    )
+
+    # STEP 2: UPDATE COMPLAINT
+    await complaint_service.link_investigation(
         complaint_id=request.complaint_id,
         assigned_admin=request.assigned_admin,
     )
